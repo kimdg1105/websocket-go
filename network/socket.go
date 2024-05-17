@@ -1,12 +1,18 @@
 package network
 
 import (
+	"net/http"
+	. "websocket-go/types"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	. "websocket-go/types"
 )
 
-var Upgrader = &websocket.Upgrader{ReadBufferSize: SocketBufferSize, WriteBufferSize: MessageBufferSize}
+var Upgrader = &websocket.Upgrader{
+	ReadBufferSize:  SocketBufferSize,
+	WriteBufferSize: MessageBufferSize,
+	CheckOrigin: func(r *http.Request) bool { return true },
+}
 
 type Message struct {
 	Name    string
@@ -40,7 +46,8 @@ func NewRoom() *Room {
 }
 
 func (r *Room) SocketServce(c *gin.Context) {
-	Upgrader.CheckOrigin = func(r *http.Request) bool {
-		return true
+	socket, err := Upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		panic(err)
 	}
 }

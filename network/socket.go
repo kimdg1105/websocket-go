@@ -29,12 +29,12 @@ type Client struct {
 
 type Room struct {
 	Forward chan *Message
-
 	Join  chan *Client
 	Leave chan *Client
-
 	Clients map[*Client]bool
 }
+
+
 
 func NewRoom() *Room {
 	return &Room{
@@ -42,6 +42,24 @@ func NewRoom() *Room {
 		Join:    make(chan *Client),
 		Leave:   make(chan *Client),
 		Clients: make(map[*Client]bool),
+	}
+}
+
+func (r *Room) Run() {
+	// Room 내 모든 채널값을 받는 역할
+	for {
+		select {
+		case client := <-r.Join:
+			r.Clients[client] = true
+		case client := <-r.Leave:
+			r.Clients[client] = false
+			close(client.Send)
+			delete(r.Clients, client)
+		case msg := <-r.Forward:
+			for client := range r.Clients {
+				client.Send <- msg
+			}
+		}
 	}
 }
 

@@ -1,9 +1,10 @@
 package network
 
 import (
+	"log"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"log"
 )
 
 type Network struct {
@@ -23,6 +24,11 @@ func NewNetwork() *Network {
 		AllowHeaders:    []string{"*"},
 		AllowWebSockets: true,
 	}))
+
+	r := NewRoom()
+	go r.Run()
+
+	n.engine.GET("/room", r.SocketServe)
 
 	return n
 }

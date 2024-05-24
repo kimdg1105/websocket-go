@@ -2,6 +2,7 @@ package network
 
 import (
 	"net/http"
+	"time"
 	. "websocket-go/types"
 
 	"github.com/gin-gonic/gin"
@@ -45,6 +46,32 @@ func NewRoom() *Room {
 	}
 }
 
+func (c *Client) Read() {
+	defer c.Socket.Close()
+	for {
+		var msg Message
+		err := c.Socket.ReadJSON(&msg)
+		if err != nil {
+			panic(err)
+		} else {
+			msg.Time = time.Now().Unix()
+			msg.Name = c.Name
+			c.Room.Forward <- &msg
+		
+		}
+	}
+}
+
+func (c *Client) Write() {
+	defer c.Socket.Close()
+	for msg := range c.Send {
+		err := c.Socket.WriteJSON(msg)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
 func (r *Room) Run() {
 	// Room 내 모든 채널값을 받는 역할
 	for {
@@ -63,7 +90,7 @@ func (r *Room) Run() {
 	}
 }
 
-func (r *Room) SocketServce(c *gin.Context) {
+func (r *Room) SocketServe(c *gin.Context) {
 	socket, err := Upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		panic(err)
@@ -82,6 +109,10 @@ func (r *Room) SocketServce(c *gin.Context) {
 	}
 
 	r.Join <- client
+
+	go client.Write()
+	client.Read()
+
 
 	defer func() { r.Leave <- client }()
 }

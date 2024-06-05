@@ -1,6 +1,7 @@
 package network
 
 import (
+	"log"
 	"net/http"
 	"time"
 	. "websocket-go/types"
@@ -52,8 +53,14 @@ func (c *Client) Read() {
 		var msg Message
 		err := c.Socket.ReadJSON(&msg)
 		if err != nil {
-			panic(err)
+			if !websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
+				break
+			} else {
+				panic(err)
+			}
 		} else {
+			log.Println("Read: ", msg, "CLIENT: ", c.Name)
+			log.Println()
 			msg.Time = time.Now().Unix()
 			msg.Name = c.Name
 			c.Room.Forward <- &msg
@@ -69,6 +76,8 @@ func (c *Client) Write() {
 		if err != nil {
 			panic(err)
 		}
+		log.Println("Write: ", msg, "CLIENT: ", c.Name)
+		log.Println()
 	}
 }
 
